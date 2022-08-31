@@ -2,7 +2,7 @@
 
 ## Development
 
-To begin development, first build the bevy dependencies with `cargo run`. This will take a while, but it a full rebuild is only necessary once. Builds after this one are fast.
+To begin development, first build the bevy dependencies with `cargo run`. This will take a while, but a full rebuild is only necessary once. Builds after this one are fast.
 
 ## How to learn to do stuff
 
