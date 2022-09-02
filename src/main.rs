@@ -15,15 +15,22 @@ impl Plugin for MiniShrewd {
         app.insert_resource(LogTimeTimer {
             timer: Timer::from_seconds(1.0, true),
         })
+        .add_startup_system(add_camera)
         .add_startup_system(add_trees)
         .add_system(log_time)
         .add_system(log_positions);
     }
 }
 
-fn add_trees(mut commands: Commands) {
-    commands.spawn().insert(Position { x: 0.0, y: 0.0 });
-    commands.spawn().insert(Position { x: 1.0, y: 0.0 });
+fn add_camera(mut commands: Commands) {
+    commands.spawn_bundle(Camera2dBundle::default());
+}
+
+fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("vicky's tree.png"),
+        ..default()
+    });
 }
 
 fn log_positions(query: Query<&Position>) {
