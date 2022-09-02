@@ -1,2 +1,4 @@
 todo now:
     ✔ draw a sprite on screen @done(22-09-01 21:20)
+    ☐ draw a character on screen
+    ☐ move the character around using wasd
