@@ -47,9 +47,17 @@ fn add_player(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(Direction { vec: Vec3::ZERO });
 }
 
-fn player_movement(time: Res<Time>, mut query: Query<(&mut Transform, &Direction), With<Player>>) {
-    if let Some((mut player_transform, direction)) = query.iter_mut().next() {
+fn player_movement(
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &mut Sprite, &Direction), With<Player>>,
+) {
+    if let Some((mut player_transform, mut sprite, direction)) = query.iter_mut().next() {
         player_transform.translation += direction.vec * 50.0 * time.delta_seconds();
+        if direction.vec.x > 0.0 {
+            sprite.flip_x = false;
+        } else if direction.vec.x < 0.0 {
+            sprite.flip_x = true;
+        }
     }
 }
 
