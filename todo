@@ -1,4 +1,5 @@
 todo now:
     ✔ draw a sprite on screen @done(22-09-01 21:20)
     ✔ draw a character on screen @done(22-09-01 22:14)
-    ☐ move the character around using wasd
+    ✔ move the character around using wasd @done(22-09-03 13:14)
+    ☐ get the sprite to flip if moving the other direction

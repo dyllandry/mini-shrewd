@@ -18,6 +18,8 @@ impl Plugin for MiniShrewd {
         .add_startup_system(add_camera)
         .add_startup_system(add_trees)
         .add_startup_system(add_player)
+        .add_system(player_movement)
+        .add_system(set_player_direction_from_input)
         .add_system(log_time)
         .add_system(log_positions);
     }
@@ -36,10 +38,46 @@ fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn add_player(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("finley.png"),
-        ..default()
-    });
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: asset_server.load("finley.png"),
+            ..default()
+        })
+        .insert(Player {})
+        .insert(Direction { vec: Vec3::ZERO });
+}
+
+fn player_movement(time: Res<Time>, mut query: Query<(&mut Transform, &Direction), With<Player>>) {
+    if let Some((mut player_transform, direction)) = query.iter_mut().next() {
+        player_transform.translation += direction.vec * 50.0 * time.delta_seconds();
+    }
+}
+
+fn set_player_direction_from_input(
+    mut query: Query<&mut Direction, With<Player>>,
+    keyboard_input: Res<Input<KeyCode>>,
+) {
+    if let Some(mut player_direction) = query.iter_mut().next() {
+        let mut new_direction = Vec3::ZERO;
+
+        if keyboard_input.pressed(KeyCode::W) {
+            new_direction.y += 1.0;
+        }
+
+        if keyboard_input.pressed(KeyCode::S) {
+            new_direction.y += -1.0;
+        }
+
+        if keyboard_input.pressed(KeyCode::D) {
+            new_direction.x += 1.0;
+        }
+
+        if keyboard_input.pressed(KeyCode::A) {
+            new_direction.x += -1.0;
+        }
+
+        player_direction.vec = new_direction;
+    }
 }
 
 fn log_positions(query: Query<&Position>) {
@@ -70,4 +108,12 @@ struct Position {
 
 struct LogTimeTimer {
     timer: Timer,
+}
+
+#[derive(Component)]
+struct Player {}
+
+#[derive(Component)]
+struct Direction {
+    vec: Vec3,
 }
