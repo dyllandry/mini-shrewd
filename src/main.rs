@@ -41,7 +41,7 @@ fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn add_ground(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("ground.png"),
-        transform: Transform::from_xyz(0.0, 0.0, 0.0),
+        transform: Transform::from_xyz(0.0, 0.0, SpriteLayers::Ground as i32 as f32),
         ..default()
     });
 }
@@ -50,6 +50,7 @@ fn add_player(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn_bundle(SpriteBundle {
             texture: asset_server.load("finley.png"),
+            transform: Transform::from_xyz(0.0, 0.0, SpriteLayers::Player as i32 as f32),
             ..default()
         })
         .insert(Player {})
@@ -133,4 +134,9 @@ struct Player {}
 #[derive(Component)]
 struct Direction {
     vec: Vec3,
+}
+
+enum SpriteLayers {
+    Ground,
+    Player,
 }

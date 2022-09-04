@@ -4,6 +4,6 @@ todo now:
     ✔ move the character around using wasd @done(22-09-03 13:14)
     ✔ get the sprite to flip if moving the other direction @done(22-09-03 19:42)
     ✔ create ground sprite & draw it @done(22-09-03 20:35)
-    ☐ draw player above the ground
+    ✔ draw player above the ground @done(22-09-03 20:51)
         There's probably already an ordering mechanism, I think it's a 2d transform translation's z value. I could create a resource that is an enum of layers that transforms/sprites can be organized into.
     ☐ draw a bunch of ground around the player
