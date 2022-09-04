@@ -39,11 +39,21 @@ fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn add_ground(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("ground.png"),
-        transform: Transform::from_xyz(0.0, 0.0, SpriteLayers::Ground as i32 as f32),
-        ..default()
-    });
+    let tile_size = 32.0;
+    let num_tiles = 10;
+    let mut tile_y = 0.0 - ((tile_size * num_tiles as f32) / 2.0);
+    for _i in 0..num_tiles {
+        let mut tile_x = 0.0 - ((tile_size * num_tiles as f32) / 2.0);
+        for _j in 0..num_tiles {
+            commands.spawn_bundle(SpriteBundle {
+                texture: asset_server.load("ground.png"),
+                transform: Transform::from_xyz(tile_x, tile_y, SpriteLayers::Ground as i32 as f32),
+                ..default()
+            });
+            tile_x += tile_size;
+        }
+        tile_y += tile_size;
+    }
 }
 
 fn add_player(mut commands: Commands, asset_server: Res<AssetServer>) {
