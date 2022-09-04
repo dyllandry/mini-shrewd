@@ -8,3 +8,15 @@ todo now:
     ✔ draw a bunch of ground around the player @done(22-09-03 21:29)
         A future issue here is that translation units are pixels. So drawing 32 pixels tiled just requires translating them by 32 units left/right. This means on a higher resolution that everything will be smaller. I'd rather keep sprites on the screen the same size between different resolutions. This will require to scale everything I draw by the screen's resolution or better yet physical size if that information is available.
             Sprites might be able to be scaled by transformation.scale
+    inspecting stuff:
+        ☐ make stuff clickable
+        ☐ make dropdown menu
+        ☐ make dropdown menu appear when clicking on an item
+            Will want to make a component that contains the info an item would display when inspecting it.
+
+todo future:
+    ☐ make trees change their z-order depending on whether their height is above the players
+        If the player's translation y value is higher than the tree, change the tree to be 1 SpriteLayer below the player.
+
+ideas:
+    - Split player sprite into top and bottom half, the bottom half will always be drawn under things like bushes tall grass, while the top half will be drawn above. This will give the character the appearance of stepping into the bushes and grass instead of clipping in front of them once they are high enough vertically.
