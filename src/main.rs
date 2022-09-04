@@ -33,7 +33,7 @@ fn add_camera(mut commands: Commands) {
 fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("vicky's tree.png"),
-        transform: Transform::from_xyz(100.0, 0.0, 0.0),
+        transform: Transform::from_xyz(100.0, 0.0, SpriteLayers::Trees as i32 as f32),
         ..default()
     });
 }
@@ -149,4 +149,5 @@ struct Direction {
 enum SpriteLayers {
     Ground,
     Player,
+    Trees,
 }
