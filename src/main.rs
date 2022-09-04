@@ -17,6 +17,7 @@ impl Plugin for MiniShrewd {
         })
         .add_startup_system(add_camera)
         .add_startup_system(add_trees)
+        .add_startup_system(add_ground)
         .add_startup_system(add_player)
         .add_system(player_movement)
         .add_system(set_player_direction_from_input)
@@ -33,6 +34,14 @@ fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("vicky's tree.png"),
         transform: Transform::from_xyz(100.0, 0.0, 0.0),
+        ..default()
+    });
+}
+
+fn add_ground(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("ground.png"),
+        transform: Transform::from_xyz(0.0, 0.0, 0.0),
         ..default()
     });
 }
