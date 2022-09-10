@@ -9,7 +9,14 @@ todo now:
         A future issue here is that translation units are pixels. So drawing 32 pixels tiled just requires translating them by 32 units left/right. This means on a higher resolution that everything will be smaller. I'd rather keep sprites on the screen the same size between different resolutions. This will require to scale everything I draw by the screen's resolution or better yet physical size if that information is available.
             Sprites might be able to be scaled by transformation.scale
     inspecting stuff:
-        ☐ make stuff clickable
+        ✔ convert click screen coordinates to world coordinates @done(22-09-10 10:37)
+        ✔ compute whether or not image was clicked on @done(22-09-10 19:04)
+        ☐ add component that tracks whether an image was clicked that frame
+        ☐ create way of debugging sprite bounds by drawing a red rectangular outline around the sprite
+            ☐ add component that allows following
+            ☐ add entity that is red outline
+                Maybe I can make this compnent like a component bundle so its easier to add.
+                Will have to make this outline out of 4 individual rectangles
         ☐ make dropdown menu
         ☐ make dropdown menu appear when clicking on an item
             Will want to make a component that contains the info an item would display when inspecting it.
@@ -17,6 +24,13 @@ todo now:
 todo future:
     ☐ make trees change their z-order depending on whether their height is above the players
         If the player's translation y value is higher than the tree, change the tree to be 1 SpriteLayer below the player.
+    ☐ position game objects by game world units instead of pixels
+        The cursor2world example in the bevy cheatbook describes a process of turning cursor window position into normalized device coordinates (ndc), to world position. That tutorial is not a solution to this problem, but it talks about stuff related to it.
+            link: https://bevy-cheatbook.github.io/cookbook/cursor2world.html?search=
+        This post has some good answers on it. Pretty much convert mouse location to world location, then use clickables object's transform to see if mouse was in it. Also some other stuff.
+            link: https://github.com/bevyengine/bevy/discussions/3256
+
 
 ideas:
     - Split player sprite into top and bottom half, the bottom half will always be drawn under things like bushes tall grass, while the top half will be drawn above. This will give the character the appearance of stepping into the bushes and grass instead of clipping in front of them once they are high enough vertically.
+        Could also draw the feet with lower opacity. Might be an easy way of making the feet seem like they blend with the plants even better.

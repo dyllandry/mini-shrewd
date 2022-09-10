@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera::RenderTarget, transform::TransformSystem};
 use chrono::Duration;
 
 fn main() {
@@ -20,14 +20,108 @@ impl Plugin for MiniShrewd {
         .add_startup_system(add_ground)
         .add_startup_system(add_player)
         .add_system(player_movement)
+        .add_system_to_stage(
+            CoreStage::PostUpdate,
+            camera_follow_player.after(TransformSystem::TransformPropagate),
+        )
         .add_system(set_player_direction_from_input)
         .add_system(log_time)
-        .add_system(log_positions);
+        .add_system(log_positions)
+        .add_system(set_clicked_images);
     }
 }
 
 fn add_camera(mut commands: Commands) {
     commands.spawn_bundle(Camera2dBundle::default());
+}
+
+fn camera_follow_player(
+    mut camera_transform_query: Query<&mut GlobalTransform, (With<Camera>, Without<Player>)>,
+    player_transform_query: Query<&GlobalTransform, (With<Player>, Without<Camera>)>,
+) {
+    let player_transform = player_transform_query.single();
+    let player_translation = player_transform.translation();
+    let mut camera_transform = camera_transform_query.single_mut();
+    let camera_translation = camera_transform.translation_mut();
+    camera_translation.x = player_translation.x;
+}
+
+// Maybe rename to set_clicked_sprites
+fn set_clicked_images(
+    windows: Res<Windows>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    clickable_images_query: Query<(&Transform, &Handle<Image>), With<Clickable>>,
+    mouse_buttons: Res<Input<MouseButton>>,
+    assets: Res<Assets<Image>>,
+) {
+    if !mouse_buttons.just_pressed(MouseButton::Left) {
+        return;
+    }
+
+    let (camera, camera_transform) = camera_query.single();
+    let window = if let RenderTarget::Window(id) = camera.target {
+        windows.get(id).unwrap()
+    } else {
+        windows.get_primary().unwrap()
+    };
+
+    if let Some(screen_pos) = window.cursor_position() {
+        let click_world_pos = {
+            // This approach comes from https://bevy-cheatbook.github.io/cookbook/cursor2world.html
+            let window_size = Vec2::new(window.width() as f32, window.height() as f32);
+            let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+            let ndc_to_world =
+                camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+            let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+            world_pos.truncate()
+        };
+
+        let clicked_image = clickable_images_query
+            .iter()
+            .find(|(transform, image_handle)| {
+                let image_asset = assets.get(image_handle);
+                return match image_asset {
+                    None => false,
+                    Some(image_asset) => {
+                        // One problem with this is that an image asset's size is the size of the
+                        // image file's width and height. So if I draw a small object in a 32x32
+                        // file, the small object's size will be 32x32. A way around this is to crop
+                        // the image to the sprite's bounds before I save the file.
+                        // A longer solution is when an asset loads to sample it's pixels to find its
+                        // bounds, then set that on a new component like SpritePixelBounds, then
+                        // iterate through those in this system instead of image assets.
+                        let image_size = image_asset.size();
+                        println!("clickable image size: {:?}", image_size);
+
+                        // If using sprites with different anchors, query for the sprite component
+                        // and account for anchor while calculating sprite world bounds.
+                        let sprite_world_bounds_min_x: f32 =
+                            { transform.translation.x - (image_size.x / 2.0) };
+                        let sprite_world_bounds_max_x: f32 =
+                            { transform.translation.x + (image_size.x / 2.0) };
+                        let sprite_world_bounds_min_y: f32 =
+                            { transform.translation.y - (image_size.y / 2.0) };
+                        let sprite_world_bounds_max_y: f32 =
+                            { transform.translation.y + (image_size.y / 2.0) };
+
+                        return click_world_pos.x <= sprite_world_bounds_max_x
+                            && click_world_pos.x >= sprite_world_bounds_min_x
+                            && click_world_pos.y <= sprite_world_bounds_max_y
+                            && click_world_pos.y >= sprite_world_bounds_min_y;
+                    }
+                };
+            });
+
+        if let Some(_clicked_image) = clicked_image {
+            // I want to figure out what to do now.
+            // Can add property to Clickable component "just_clicked".
+            // Systems that care about certain things being clicked can query for that component
+            // then see if Clickable.just_clicked is true & do their logic.
+            // This system set_clicked_images at the start will have to iterate through all
+            // clickables and set just_clicked to false.
+            println!("clicked on image!");
+        }
+    }
 }
 
 fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -56,15 +150,18 @@ fn add_ground(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
-fn add_player(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn add_player(mut commands: Commands, asset_server: Res<AssetServer>, assets: Res<Assets<Image>>) {
+    let player_image_handle: Handle<Image> = asset_server.load("finley.png");
+    let player_translation = Vec3::new(0.0, 0.0, SpriteLayers::Player as i32 as f32);
     commands
         .spawn_bundle(SpriteBundle {
-            texture: asset_server.load("finley.png"),
-            transform: Transform::from_xyz(0.0, 0.0, SpriteLayers::Player as i32 as f32),
+            texture: player_image_handle,
+            transform: Transform::from_translation(player_translation),
             ..default()
         })
         .insert(Player {})
-        .insert(Direction { vec: Vec3::ZERO });
+        .insert(Direction { vec: Vec3::ZERO })
+        .insert(Clickable {});
 }
 
 fn player_movement(
@@ -151,3 +248,6 @@ enum SpriteLayers {
     Player,
     Trees,
 }
+
+#[derive(Component)]
+struct Clickable {}
