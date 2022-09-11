@@ -27,7 +27,7 @@ impl Plugin for MiniShrewd {
         .add_system(set_player_direction_from_input)
         .add_system(log_time)
         .add_system(log_positions)
-        .add_system(set_clicked_images);
+        .add_system(set_clicked_clickables);
     }
 }
 
@@ -47,15 +47,15 @@ fn camera_follow_player(
 }
 
 // Maybe rename to set_clicked_sprites
-fn set_clicked_images(
+fn set_clicked_clickables(
     windows: Res<Windows>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    mut clickable_images_query: Query<(&mut Clickable, &Transform, &Handle<Image>)>,
+    mut clickables_query: Query<(&mut Clickable, &Transform, &Handle<Image>)>,
     mouse_buttons: Res<Input<MouseButton>>,
     assets: Res<Assets<Image>>,
 ) {
     // Reset all clicked components to not be clicked.
-    for (mut clickable, ..) in clickable_images_query.iter_mut() {
+    for (mut clickable, ..) in clickables_query.iter_mut() {
         if clickable.just_clicked {
             clickable.just_clicked = false;
         }
@@ -83,10 +83,10 @@ fn set_clicked_images(
             world_pos.truncate()
         };
 
-        let clicked_query_element =
-            clickable_images_query
+        let clicked_clickables_query_element =
+            clickables_query
                 .iter_mut()
-                .find(|(clickable, transform, image_handle)| {
+                .find(|(_clickable, transform, image_handle)| {
                     let image_asset = assets.get(image_handle);
                     return match image_asset {
                         None => false,
@@ -120,7 +120,7 @@ fn set_clicked_images(
                     };
                 });
 
-        if let Some((mut clickable, ..)) = clicked_query_element {
+        if let Some((mut clickable, ..)) = clicked_clickables_query_element {
             // I want to figure out what to do now.
             // Can add property to Clickable component "just_clicked".
             // Systems that care about certain things being clicked can query for that component
