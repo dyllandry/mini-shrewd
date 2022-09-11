@@ -50,10 +50,17 @@ fn camera_follow_player(
 fn set_clicked_images(
     windows: Res<Windows>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    clickable_images_query: Query<(&Transform, &Handle<Image>), With<Clickable>>,
+    mut clickable_images_query: Query<(&mut Clickable, &Transform, &Handle<Image>)>,
     mouse_buttons: Res<Input<MouseButton>>,
     assets: Res<Assets<Image>>,
 ) {
+    // Reset all clicked components to not be clicked.
+    for (mut clickable, ..) in clickable_images_query.iter_mut() {
+        if clickable.just_clicked {
+            clickable.just_clicked = false;
+        }
+    }
+
     if !mouse_buttons.just_pressed(MouseButton::Left) {
         return;
     }
@@ -76,49 +83,51 @@ fn set_clicked_images(
             world_pos.truncate()
         };
 
-        let clicked_image = clickable_images_query
-            .iter()
-            .find(|(transform, image_handle)| {
-                let image_asset = assets.get(image_handle);
-                return match image_asset {
-                    None => false,
-                    Some(image_asset) => {
-                        // One problem with this is that an image asset's size is the size of the
-                        // image file's width and height. So if I draw a small object in a 32x32
-                        // file, the small object's size will be 32x32. A way around this is to crop
-                        // the image to the sprite's bounds before I save the file.
-                        // A longer solution is when an asset loads to sample it's pixels to find its
-                        // bounds, then set that on a new component like SpritePixelBounds, then
-                        // iterate through those in this system instead of image assets.
-                        let image_size = image_asset.size();
-                        println!("clickable image size: {:?}", image_size);
+        let clicked_query_element =
+            clickable_images_query
+                .iter_mut()
+                .find(|(clickable, transform, image_handle)| {
+                    let image_asset = assets.get(image_handle);
+                    return match image_asset {
+                        None => false,
+                        Some(image_asset) => {
+                            // One problem with this is that an image asset's size is the size of the
+                            // image file's width and height. So if I draw a small object in a 32x32
+                            // file, the small object's size will be 32x32. A way around this is to crop
+                            // the image to the sprite's bounds before I save the file.
+                            // A longer solution is when an asset loads to sample it's pixels to find its
+                            // bounds, then set that on a new component like SpritePixelBounds, then
+                            // iterate through those in this system instead of image assets.
+                            let image_size = image_asset.size();
+                            println!("clickable image size: {:?}", image_size);
 
-                        // If using sprites with different anchors, query for the sprite component
-                        // and account for anchor while calculating sprite world bounds.
-                        let sprite_world_bounds_min_x: f32 =
-                            { transform.translation.x - (image_size.x / 2.0) };
-                        let sprite_world_bounds_max_x: f32 =
-                            { transform.translation.x + (image_size.x / 2.0) };
-                        let sprite_world_bounds_min_y: f32 =
-                            { transform.translation.y - (image_size.y / 2.0) };
-                        let sprite_world_bounds_max_y: f32 =
-                            { transform.translation.y + (image_size.y / 2.0) };
+                            // If using sprites with different anchors, query for the sprite component
+                            // and account for anchor while calculating sprite world bounds.
+                            let sprite_world_bounds_min_x: f32 =
+                                { transform.translation.x - (image_size.x / 2.0) };
+                            let sprite_world_bounds_max_x: f32 =
+                                { transform.translation.x + (image_size.x / 2.0) };
+                            let sprite_world_bounds_min_y: f32 =
+                                { transform.translation.y - (image_size.y / 2.0) };
+                            let sprite_world_bounds_max_y: f32 =
+                                { transform.translation.y + (image_size.y / 2.0) };
 
-                        return click_world_pos.x <= sprite_world_bounds_max_x
-                            && click_world_pos.x >= sprite_world_bounds_min_x
-                            && click_world_pos.y <= sprite_world_bounds_max_y
-                            && click_world_pos.y >= sprite_world_bounds_min_y;
-                    }
-                };
-            });
+                            return click_world_pos.x <= sprite_world_bounds_max_x
+                                && click_world_pos.x >= sprite_world_bounds_min_x
+                                && click_world_pos.y <= sprite_world_bounds_max_y
+                                && click_world_pos.y >= sprite_world_bounds_min_y;
+                        }
+                    };
+                });
 
-        if let Some(_clicked_image) = clicked_image {
+        if let Some((mut clickable, ..)) = clicked_query_element {
             // I want to figure out what to do now.
             // Can add property to Clickable component "just_clicked".
             // Systems that care about certain things being clicked can query for that component
             // then see if Clickable.just_clicked is true & do their logic.
             // This system set_clicked_images at the start will have to iterate through all
             // clickables and set just_clicked to false.
+            clickable.just_clicked = true;
             println!("clicked on image!");
         }
     }
@@ -161,7 +170,7 @@ fn add_player(mut commands: Commands, asset_server: Res<AssetServer>, assets: Re
         })
         .insert(Player {})
         .insert(Direction { vec: Vec3::ZERO })
-        .insert(Clickable {});
+        .insert(Clickable::new());
 }
 
 fn player_movement(
@@ -249,5 +258,13 @@ enum SpriteLayers {
     Trees,
 }
 
-#[derive(Component)]
-struct Clickable {}
+#[derive(Component, Default)]
+struct Clickable {
+    just_clicked: bool,
+}
+
+impl Clickable {
+    fn new() -> Self {
+        self::default()
+    }
+}
