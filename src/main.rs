@@ -27,7 +27,8 @@ impl Plugin for MiniShrewd {
         .add_system(set_player_direction_from_input)
         .add_system(log_time)
         .add_system(log_positions)
-        .add_system(set_clicked_clickables);
+        .add_system(set_clicked_clickables)
+        .add_system(create_dropdown_when_inspectable_clicked);
     }
 }
 
@@ -133,6 +134,14 @@ fn set_clicked_clickables(
     }
 }
 
+fn create_dropdown_when_inspectable_clicked(query: Query<(&Clickable, &Inspectable, &Transform)>) {
+    for (clickable, inspectable, transform) in query.iter() {
+        if (clickable.just_clicked) {
+            println!("Just clicked an inspectable thing!");
+        }
+    }
+}
+
 fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("vicky's tree.png"),
@@ -170,7 +179,8 @@ fn add_player(mut commands: Commands, asset_server: Res<AssetServer>, assets: Re
         })
         .insert(Player {})
         .insert(Direction { vec: Vec3::ZERO })
-        .insert(Clickable::new());
+        .insert(Clickable::new())
+        .insert(Inspectable {});
 }
 
 fn player_movement(
@@ -268,3 +278,6 @@ impl Clickable {
         self::default()
     }
 }
+
+#[derive(Component)]
+struct Inspectable {}

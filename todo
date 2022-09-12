@@ -11,7 +11,10 @@ todo now:
     inspecting stuff:
         ✔ convert click screen coordinates to world coordinates @done(22-09-10 10:37)
         ✔ compute whether or not image was clicked on @done(22-09-10 19:04)
-        ☐ add component that tracks whether an image was clicked that frame
+        ✔ add component that tracks whether an image was clicked that frame @done(22-09-11 10:12)
+        ✔ add system for checking if inspectable things were clicked @done(22-09-12 19:00)
+        ☐ draw example window + button with bevy_egui
+            https://github.com/mvlabat/bevy_egui
         ☐ create way of debugging sprite bounds by drawing a red rectangular outline around the sprite
             ☐ add component that allows following
             ☐ add entity that is red outline
