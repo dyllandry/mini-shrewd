@@ -109,7 +109,6 @@ fn set_clicked_clickables(
                             // bounds, then set that on a new component like SpritePixelBounds, then
                             // iterate through those in this system instead of image assets.
                             let image_size = image_asset.size();
-                            println!("clickable image size: {:?}", image_size);
 
                             // If using sprites with different anchors, query for the sprite component
                             // and account for anchor while calculating sprite world bounds.
