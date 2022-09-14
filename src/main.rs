@@ -1,9 +1,11 @@
 use bevy::{prelude::*, render::camera::RenderTarget, transform::TransformSystem};
+use bevy_egui::{egui, EguiContext, EguiPlugin};
 use chrono::Duration;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugin(EguiPlugin)
         .add_plugin(MiniShrewd)
         .run();
 }
@@ -28,8 +30,15 @@ impl Plugin for MiniShrewd {
         .add_system(log_time)
         .add_system(log_positions)
         .add_system(set_clicked_clickables)
-        .add_system(create_dropdown_when_inspectable_clicked);
+        .add_system(create_dropdown_when_inspectable_clicked)
+        .add_system(ui_example);
     }
+}
+
+fn ui_example(mut egui_context: ResMut<EguiContext>) {
+    egui::Window::new("Hello").show(egui_context.ctx_mut(), |ui| {
+        ui.label("world");
+    });
 }
 
 fn add_camera(mut commands: Commands) {
@@ -135,8 +144,8 @@ fn set_clicked_clickables(
 }
 
 fn create_dropdown_when_inspectable_clicked(query: Query<(&Clickable, &Inspectable, &Transform)>) {
-    for (clickable, inspectable, transform) in query.iter() {
-        if (clickable.just_clicked) {
+    for (clickable, _inspectable, _transform) in query.iter() {
+        if clickable.just_clicked {
             println!("Just clicked an inspectable thing!");
         }
     }
@@ -168,7 +177,7 @@ fn add_ground(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
-fn add_player(mut commands: Commands, asset_server: Res<AssetServer>, assets: Res<Assets<Image>>) {
+fn add_player(mut commands: Commands, asset_server: Res<AssetServer>, _assets: Res<Assets<Image>>) {
     let player_image_handle: Handle<Image> = asset_server.load("finley.png");
     let player_translation = Vec3::new(0.0, 0.0, SpriteLayers::Player as i32 as f32);
     commands
