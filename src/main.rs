@@ -1,5 +1,8 @@
 use bevy::{prelude::*, render::camera::RenderTarget, transform::TransformSystem};
-use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_egui::{
+    egui::{self, Color32, Pos2},
+    EguiContext, EguiPlugin,
+};
 use chrono::Duration;
 
 fn main() {
@@ -36,9 +39,19 @@ impl Plugin for MiniShrewd {
 }
 
 fn ui_example(mut egui_context: ResMut<EguiContext>) {
-    egui::Window::new("Hello").show(egui_context.ctx_mut(), |ui| {
-        ui.label("world");
-    });
+    egui::Area::new("my area")
+        .movable(false)
+        .fixed_pos(Pos2::new(0.0, 0.0))
+        .show(egui_context.ctx_mut(), |ui| {
+            egui::Frame::none().fill(Color32::GREEN).show(ui, |ui| {
+                ui.label("apple");
+                ui.label("banana");
+                ui.vertical(|ui| {
+                    ui.label("carrot");
+                    ui.label("donut");
+                });
+            });
+        });
 }
 
 fn add_camera(mut commands: Commands) {

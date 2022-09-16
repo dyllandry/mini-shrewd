@@ -14,7 +14,10 @@ todo now:
         ✔ add component that tracks whether an image was clicked that frame @done(22-09-11 10:12)
         ✔ add system for checking if inspectable things were clicked @done(22-09-12 19:00)
         ✔ add minimum example of bevy_egui @done(22-09-13 21:47)
-        ☐ find right bevy_egui widget/thing for the dropdown
+        ✔ find right bevy_egui widget/thing for the dropdown @done(22-09-15 21:13)
+            It's a plain "area"
+        ☐ make the dropdown show up at the current mouse location when you click
+        ☐ make the dropdown close when you click on anything else
         ☐ get a bevy_egui button sending as signal that can be used to show the inspect message
         ☐ draw example window + button with bevy_egui
             https://github.com/mvlabat/bevy_egui

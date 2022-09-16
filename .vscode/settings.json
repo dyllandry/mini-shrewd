@@ -3,6 +3,7 @@
     "chrono",
     "clickables",
     "egui",
-    "Inspectable"
+    "Inspectable",
+    "noninteractive"
   ]
 }
