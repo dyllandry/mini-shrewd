@@ -4,6 +4,7 @@
     "clickables",
     "egui",
     "Inspectable",
+    "inspectables",
     "noninteractive"
   ]
 }

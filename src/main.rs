@@ -1,4 +1,7 @@
-use bevy::{prelude::*, render::camera::RenderTarget, transform::TransformSystem};
+use bevy::{
+    ecs::query::QuerySingleError, prelude::*, render::camera::RenderTarget,
+    transform::TransformSystem,
+};
 use bevy_egui::{
     egui::{self, Color32, Pos2},
     EguiContext, EguiPlugin,
@@ -36,7 +39,7 @@ impl Plugin for MiniShrewd {
         .add_system(set_mouse_position_resource)
         .add_system(set_clicked_clickables)
         .add_system(create_dropdown_when_inspectable_clicked)
-        .add_system(ui_example);
+        .add_system(draw_dropdown);
     }
 }
 
@@ -58,6 +61,11 @@ fn set_mouse_position_resource(
 
     if let Some(mouse_screen_position) = window.cursor_position() {
         mouse_position_resource.screen_position = Some(mouse_screen_position);
+        let egui_screen_position = Vec2 {
+            x: mouse_screen_position.x,
+            y: window.height() - mouse_screen_position.y, // For egui, 0 is the top of the screen.
+        };
+        mouse_position_resource.egui_screen_position = Some(egui_screen_position);
 
         let mouse_world_position = {
             // This approach comes from https://bevy-cheatbook.github.io/cookbook/cursor2world.html
@@ -75,19 +83,28 @@ fn set_mouse_position_resource(
     }
 }
 
-    egui::Area::new("my area")
-        .movable(false)
-        .fixed_pos(Pos2::new(0.0, 0.0))
-        .show(egui_context.ctx_mut(), |ui| {
-            egui::Frame::none().fill(Color32::GREEN).show(ui, |ui| {
-                ui.label("apple");
-                ui.label("banana");
-                ui.vertical(|ui| {
-                    ui.label("carrot");
-                    ui.label("donut");
+fn draw_dropdown(query: Query<&Dropdown>, mut egui_context: ResMut<EguiContext>) {
+    match query.get_single() {
+        Ok(dropdown) => {
+            egui::Area::new("my area")
+                .movable(false)
+                .fixed_pos(vec2_to_pos2(dropdown.screen_position))
+                .show(egui_context.ctx_mut(), |ui| {
+                    egui::Frame::none().fill(Color32::GREEN).show(ui, |ui| {
+                        ui.label("apple");
+                        ui.label("banana");
+                        ui.vertical(|ui| {
+                            ui.label("carrot");
+                            ui.label("donut");
+                        });
+                    });
                 });
-            });
-        });
+        }
+        Err(error) => match error {
+            QuerySingleError::MultipleEntities(_) => eprintln!("More than one dropdown exists but there's currently only support for rendering 1 dropdown."),
+            QuerySingleError::NoEntities(_) => (),
+        },
+    }
 }
 
 fn add_camera(mut commands: Commands) {
@@ -173,11 +190,24 @@ fn set_clicked_clickables(
     }
 }
 
-fn create_dropdown_when_inspectable_clicked(query: Query<(&Clickable, &Inspectable, &Transform)>) {
-    for (clickable, _inspectable, _transform) in query.iter() {
-        if clickable.just_clicked {
-            println!("Just clicked an inspectable thing!");
-        }
+fn create_dropdown_when_inspectable_clicked(
+    mut commands: Commands,
+    query: Query<&Clickable, With<Inspectable>>,
+    mouse_position: Res<MousePosition>,
+) {
+    // Add future support for displaying multiple clicked inspectable things in the dropdown at once.
+    match query.get_single() {
+        Ok(clickable) => {
+            if clickable.just_clicked {
+                if let Some(mouse_egui_screen_position) = mouse_position.egui_screen_position {
+                    println!("Just clicked an inspectable thing!");
+                    commands.spawn().insert(Dropdown {
+                        screen_position: mouse_egui_screen_position,
+                    });
+                }
+            }
+        },
+        Err(_) => eprintln!("Multiple inspectables were clicked but right now only clicking 1 inspectable is supported")
     }
 }
 
@@ -321,14 +351,27 @@ impl Clickable {
 #[derive(Component)]
 struct Inspectable {}
 
+#[derive(Component)]
+struct Dropdown {
+    screen_position: Vec2,
+}
+
 #[derive(Default)]
 struct MousePosition {
     screen_position: Option<Vec2>,
+    egui_screen_position: Option<Vec2>,
     world_position: Option<Vec2>,
 }
 
 impl MousePosition {
     fn new() -> Self {
         MousePosition::default()
+    }
+}
+
+fn vec2_to_pos2(vec2: Vec2) -> Pos2 {
+    Pos2 {
+        x: vec2.x,
+        y: vec2.y,
     }
 }
