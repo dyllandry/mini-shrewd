@@ -24,6 +24,7 @@ impl Plugin for MiniShrewd {
         .add_startup_system(add_trees)
         .add_startup_system(add_ground)
         .add_startup_system(add_player)
+        .add_startup_system(init_resources)
         .add_system(player_movement)
         .add_system_to_stage(
             CoreStage::PostUpdate,
@@ -32,13 +33,48 @@ impl Plugin for MiniShrewd {
         .add_system(set_player_direction_from_input)
         .add_system(log_time)
         .add_system(log_positions)
+        .add_system(set_mouse_position_resource)
         .add_system(set_clicked_clickables)
         .add_system(create_dropdown_when_inspectable_clicked)
         .add_system(ui_example);
     }
 }
 
-fn ui_example(mut egui_context: ResMut<EguiContext>) {
+fn init_resources(mut commands: Commands) {
+    commands.insert_resource(MousePosition::new())
+}
+
+fn set_mouse_position_resource(
+    windows: Res<Windows>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mut mouse_position_resource: ResMut<MousePosition>,
+) {
+    let (camera, camera_transform) = camera_query.single();
+    let window = if let RenderTarget::Window(id) = camera.target {
+        windows.get(id).unwrap()
+    } else {
+        windows.get_primary().unwrap()
+    };
+
+    if let Some(mouse_screen_position) = window.cursor_position() {
+        mouse_position_resource.screen_position = Some(mouse_screen_position);
+
+        let mouse_world_position = {
+            // This approach comes from https://bevy-cheatbook.github.io/cookbook/cursor2world.html
+            let window_size = Vec2::new(window.width() as f32, window.height() as f32);
+            let ndc = (mouse_screen_position / window_size) * 2.0 - Vec2::ONE;
+            let ndc_to_world =
+                camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+            let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+            world_pos.truncate()
+        };
+        mouse_position_resource.world_position = Some(mouse_world_position);
+    } else {
+        mouse_position_resource.screen_position = None;
+        mouse_position_resource.world_position = None;
+    }
+}
+
     egui::Area::new("my area")
         .movable(false)
         .fixed_pos(Pos2::new(0.0, 0.0))
@@ -71,8 +107,7 @@ fn camera_follow_player(
 
 // Maybe rename to set_clicked_sprites
 fn set_clicked_clickables(
-    windows: Res<Windows>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mouse_position: Res<MousePosition>,
     mut clickables_query: Query<(&mut Clickable, &Transform, &Handle<Image>)>,
     mouse_buttons: Res<Input<MouseButton>>,
     assets: Res<Assets<Image>>,
@@ -88,24 +123,7 @@ fn set_clicked_clickables(
         return;
     }
 
-    let (camera, camera_transform) = camera_query.single();
-    let window = if let RenderTarget::Window(id) = camera.target {
-        windows.get(id).unwrap()
-    } else {
-        windows.get_primary().unwrap()
-    };
-
-    if let Some(screen_pos) = window.cursor_position() {
-        let click_world_pos = {
-            // This approach comes from https://bevy-cheatbook.github.io/cookbook/cursor2world.html
-            let window_size = Vec2::new(window.width() as f32, window.height() as f32);
-            let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
-            let ndc_to_world =
-                camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-            let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-            world_pos.truncate()
-        };
-
+    if let Some(mouse_world_position) = mouse_position.world_position {
         let clicked_clickables_query_element =
             clickables_query
                 .iter_mut()
@@ -134,10 +152,10 @@ fn set_clicked_clickables(
                             let sprite_world_bounds_max_y: f32 =
                                 { transform.translation.y + (image_size.y / 2.0) };
 
-                            return click_world_pos.x <= sprite_world_bounds_max_x
-                                && click_world_pos.x >= sprite_world_bounds_min_x
-                                && click_world_pos.y <= sprite_world_bounds_max_y
-                                && click_world_pos.y >= sprite_world_bounds_min_y;
+                            return mouse_world_position.x <= sprite_world_bounds_max_x
+                                && mouse_world_position.x >= sprite_world_bounds_min_x
+                                && mouse_world_position.y <= sprite_world_bounds_max_y
+                                && mouse_world_position.y >= sprite_world_bounds_min_y;
                         }
                     };
                 });
@@ -302,3 +320,15 @@ impl Clickable {
 
 #[derive(Component)]
 struct Inspectable {}
+
+#[derive(Default)]
+struct MousePosition {
+    screen_position: Option<Vec2>,
+    world_position: Option<Vec2>,
+}
+
+impl MousePosition {
+    fn new() -> Self {
+        MousePosition::default()
+    }
+}
