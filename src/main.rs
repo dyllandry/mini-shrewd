@@ -92,11 +92,10 @@ fn draw_dropdown(query: Query<&Dropdown>, mut egui_context: ResMut<EguiContext>)
                 .fixed_pos(vec2_to_pos2(dropdown.screen_position))
                 .show(egui_context.ctx_mut(), |ui| {
                     egui::Frame::none().fill(Color32::GREEN).show(ui, |ui| {
-                        ui.label("apple");
-                        ui.label("banana");
+                        // Not sure if I need a vertical layout here. ui might start with one of those by default.
+                        ui.set_min_size(egui::Vec2 { x: 20.0, y: 5.0 });
                         ui.vertical(|ui| {
-                            ui.label("carrot");
-                            ui.label("donut");
+                            ui.label(&dropdown.inspectable.name);
                         });
                     });
                 });
@@ -211,36 +210,38 @@ fn despawn_when_not_clicked(
 
 fn create_dropdown_when_inspectable_clicked(
     mut commands: Commands,
-    query: Query<&Clickable, With<Inspectable>>,
+    query: Query<(&Clickable, &Inspectable)>,
     mouse_position: Res<MousePosition>,
 ) {
     // Add future support for displaying multiple clicked inspectable things in the dropdown at once.
-    match query.get_single() {
-        Ok(clickable) => {
-            if clickable.just_clicked {
-                if let Some(mouse_egui_screen_position) = mouse_position.egui_screen_position {
-                    println!("Just clicked an inspectable thing!");
-                    commands.spawn().insert(Dropdown {
+    for (clickable, inspectable) in query.iter() {
+        if clickable.just_clicked {
+            if let Some(mouse_egui_screen_position) = mouse_position.egui_screen_position {
+                commands
+                    .spawn()
+                    .insert(Dropdown {
                         screen_position: mouse_egui_screen_position,
+                        inspectable: inspectable.clone(),
                     })
                     .insert(WhenNotClickedDespawn {})
                     // I think in the future the dropdown itself wont have a clickable component,
                     // but instead one of its children will. So we'll have to somehow delete the
                     // parent dropdown component from one of its children.
                     .insert(Clickable::new());
-                }
             }
-        },
-        Err(_) => eprintln!("Multiple inspectables were clicked but right now only clicking 1 inspectable is supported")
+        }
     }
 }
 
 fn add_trees(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("vicky's tree.png"),
-        transform: Transform::from_xyz(100.0, 0.0, SpriteLayers::Trees as i32 as f32),
-        ..default()
-    });
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: asset_server.load("vicky's tree.png"),
+            transform: Transform::from_xyz(100.0, 0.0, SpriteLayers::Trees as i32 as f32),
+            ..default()
+        })
+        .insert(Clickable::new())
+        .insert(Inspectable::new(String::from("Tree")));
 }
 
 fn add_ground(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -273,7 +274,9 @@ fn add_player(mut commands: Commands, asset_server: Res<AssetServer>, _assets: R
         .insert(Player {})
         .insert(Direction { vec: Vec3::ZERO })
         .insert(Clickable::new())
-        .insert(Inspectable {});
+        .insert(Inspectable {
+            name: String::from("The player!"),
+        });
 }
 
 fn player_movement(
@@ -375,12 +378,27 @@ impl Clickable {
 #[derive(Component)]
 struct WhenNotClickedDespawn {}
 
-#[derive(Component)]
-struct Inspectable {}
+#[derive(Component, Default, Clone)]
+struct Inspectable {
+    name: String,
+}
+
+impl Inspectable {
+    fn new(name: String) -> Self {
+        Self {
+            name,
+            ..Self::default()
+        }
+    }
+}
 
 #[derive(Component)]
 struct Dropdown {
     screen_position: Vec2,
+    // I think cloning components into here is fine. The actual
+    // cloned component contains very little data. And it's only when
+    // the dropdown exists.
+    inspectable: Inspectable,
 }
 
 #[derive(Default)]
