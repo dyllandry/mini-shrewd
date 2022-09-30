@@ -38,6 +38,7 @@ impl Plugin for MiniShrewd {
         .add_system(log_positions)
         .add_system(set_mouse_position_resource)
         .add_system(set_clicked_clickables)
+        .add_system(despawn_when_not_clicked)
         .add_system(create_dropdown_when_inspectable_clicked)
         .add_system(draw_dropdown);
     }
@@ -123,6 +124,10 @@ fn camera_follow_player(
 }
 
 // Maybe rename to set_clicked_sprites
+// This totally doesn't work for clickable things made using the egui stuff. I
+// imagine I'd be able to send an event at least from the code that draws the ui
+// when a click happens. Then systems can read that event. Maybe it can contain
+// an entity id.
 fn set_clicked_clickables(
     mouse_position: Res<MousePosition>,
     mut clickables_query: Query<(&mut Clickable, &Transform, &Handle<Image>)>,
@@ -190,6 +195,20 @@ fn set_clicked_clickables(
     }
 }
 
+fn despawn_when_not_clicked(
+    mut commands: Commands,
+    query: Query<(Entity, &Clickable), With<WhenNotClickedDespawn>>,
+    mouse_buttons: Res<Input<MouseButton>>,
+) {
+    if mouse_buttons.just_pressed(MouseButton::Left) {
+        for (entity, clickable) in query.iter() {
+            if !clickable.just_clicked {
+                commands.entity(entity).despawn();
+            }
+        }
+    }
+}
+
 fn create_dropdown_when_inspectable_clicked(
     mut commands: Commands,
     query: Query<&Clickable, With<Inspectable>>,
@@ -203,7 +222,12 @@ fn create_dropdown_when_inspectable_clicked(
                     println!("Just clicked an inspectable thing!");
                     commands.spawn().insert(Dropdown {
                         screen_position: mouse_egui_screen_position,
-                    });
+                    })
+                    .insert(WhenNotClickedDespawn {})
+                    // I think in the future the dropdown itself wont have a clickable component,
+                    // but instead one of its children will. So we'll have to somehow delete the
+                    // parent dropdown component from one of its children.
+                    .insert(Clickable::new());
                 }
             }
         },
@@ -347,6 +371,9 @@ impl Clickable {
         self::default()
     }
 }
+
+#[derive(Component)]
+struct WhenNotClickedDespawn {}
 
 #[derive(Component)]
 struct Inspectable {}

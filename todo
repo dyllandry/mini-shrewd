@@ -17,8 +17,7 @@ todo now:
         ✔ find right bevy_egui widget/thing for the dropdown @done(22-09-15 21:13)
             It's a plain "area"
         ✔ make the dropdown show up at the current mouse location when you click @done(22-09-18 18:10)
-        ☐ make the dropdown close when you click on anything else
-        ☐ make the dropdown close when you move
+        ✔ make the dropdown close when you click on anything else @done(22-09-30 09:14)
         ☐ display inspectables in dropdown
         ☐ get a bevy_egui button sending as signal that can be used to show the inspect message
         ☐ draw example window + button with bevy_egui
