@@ -19,6 +19,7 @@ todo now:
         ✔ make the dropdown show up at the current mouse location when you click @done(22-09-18 18:10)
         ✔ make the dropdown close when you click on anything else @done(22-09-30 09:14)
         ☐ display inspectables in dropdown
+            Dropdown should probably have some component that stores what inspectables were clicked. Maybe references to the inspectable components themselves. Then from that list, it can draw the corresponding UI. When one of those UI buttons are clicked, it should know which inspectable that UI element corresponds to. After that, maybe it can send an event that the inspectable dropdown was clicked like InspectableDropdownItemClicked with some payload that lets the next systems respond to the specific inspectable that was clicked.
         ☐ get a bevy_egui button sending as signal that can be used to show the inspect message
         ☐ draw example window + button with bevy_egui
             https://github.com/mvlabat/bevy_egui
