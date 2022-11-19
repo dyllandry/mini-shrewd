@@ -20,16 +20,17 @@ todo now:
         ✔ make the dropdown close when you click on anything else @done(22-09-30 09:14)
         ✔ display inspectables in dropdown @done(22-09-30 12:33)
             Dropdown should probably have some component that stores what inspectables were clicked. Maybe references to the inspectable components themselves. Then from that list, it can draw the corresponding UI. When one of those UI buttons are clicked, it should know which inspectable that UI element corresponds to. After that, maybe it can send an event that the inspectable dropdown was clicked like InspectableDropdownItemClicked with some payload that lets the next systems respond to the specific inspectable that was clicked.
-        ☐ get a bevy_egui button sending as signal that can be used to show the inspect message
-        ☐ draw example window + button with bevy_egui
+        ✔ get a bevy_egui button sending as signal that can be used to show the inspect message @done(22-11-19 18:02)
+        ✔ draw example window + button with bevy_egui @done(22-11-19 18:02)
             https://github.com/mvlabat/bevy_egui
         ☐ create way of debugging sprite bounds by drawing a red rectangular outline around the sprite
+            I don't think there's much benefit to do this right now.
             ☐ add component that allows following
             ☐ add entity that is red outline
                 Maybe I can make this compnent like a component bundle so its easier to add.
                 Will have to make this outline out of 4 individual rectangles
-        ☐ make dropdown menu
-        ☐ make dropdown menu appear when clicking on an item
+        ✔ make dropdown menu @done(22-11-19 18:03)
+        ✔ make dropdown menu appear when clicking on an item @done(22-11-19 18:03)
             Will want to make a component that contains the info an item would display when inspecting it.
 
 todo future:

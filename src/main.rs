@@ -10,11 +10,14 @@ use chrono::Duration;
 
 fn main() {
     App::new()
+        .add_event::<ClickedNothingEvent>()
         .add_plugins(DefaultPlugins)
         .add_plugin(EguiPlugin)
         .add_plugin(MiniShrewd)
         .run();
 }
+
+struct ClickedNothingEvent;
 
 pub struct MiniShrewd;
 
@@ -40,7 +43,8 @@ impl Plugin for MiniShrewd {
         .add_system(set_clicked_clickables)
         .add_system(despawn_when_not_clicked)
         .add_system(create_dropdown_when_inspectable_clicked)
-        .add_system(draw_dropdown);
+        .add_system(draw_dropdown)
+        .add_system(log_events);
     }
 }
 
@@ -84,9 +88,18 @@ fn set_mouse_position_resource(
     }
 }
 
-fn draw_dropdown(query: Query<&Dropdown>, mut egui_context: ResMut<EguiContext>) {
+fn draw_dropdown(
+    query: Query<(Entity, &Dropdown)>,
+    mut egui_context: ResMut<EguiContext>,
+    clicked_nothing_event_reader: EventReader<ClickedNothingEvent>,
+    mut commands: Commands,
+) {
     match query.get_single() {
-        Ok(dropdown) => {
+        Ok((dropdown_entity, dropdown)) => {
+            if !clicked_nothing_event_reader.is_empty() {
+                commands.entity(dropdown_entity).despawn();
+            }
+
             egui::Area::new("my area")
                 .movable(false)
                 .fixed_pos(vec2_to_pos2(dropdown.screen_position))
@@ -95,7 +108,11 @@ fn draw_dropdown(query: Query<&Dropdown>, mut egui_context: ResMut<EguiContext>)
                         // Not sure if I need a vertical layout here. ui might start with one of those by default.
                         ui.set_min_size(egui::Vec2 { x: 20.0, y: 5.0 });
                         ui.vertical(|ui| {
-                            ui.label(&dropdown.inspectable.name);
+                            let is_clicked = ui.button(&dropdown.inspectable.name).clicked();
+                            if is_clicked {
+                                println!("clicked button {}", &dropdown.inspectable.name);
+                                commands.entity(dropdown_entity).despawn();
+                            }
                         });
                     });
                 });
@@ -104,6 +121,12 @@ fn draw_dropdown(query: Query<&Dropdown>, mut egui_context: ResMut<EguiContext>)
             QuerySingleError::MultipleEntities(_) => eprintln!("More than one dropdown exists but there's currently only support for rendering 1 dropdown."),
             QuerySingleError::NoEntities(_) => (),
         },
+    }
+}
+
+fn log_events(mut clicked_nothing: EventReader<ClickedNothingEvent>) {
+    for _ in clicked_nothing.iter() {
+        println!("ClickedNothingEvent");
     }
 }
 
@@ -132,15 +155,17 @@ fn set_clicked_clickables(
     mut clickables_query: Query<(&mut Clickable, &Transform, &Handle<Image>)>,
     mouse_buttons: Res<Input<MouseButton>>,
     assets: Res<Assets<Image>>,
+    mut egui_ctx: ResMut<EguiContext>,
+    mut clicked_nothing_event_writer: EventWriter<ClickedNothingEvent>,
 ) {
-    // Reset all clicked components to not be clicked.
+    // Reset all clicked components to not be just clicked.
     for (mut clickable, ..) in clickables_query.iter_mut() {
         if clickable.just_clicked {
             clickable.just_clicked = false;
         }
     }
 
-    if !mouse_buttons.just_pressed(MouseButton::Left) {
+    if !mouse_buttons.just_pressed(MouseButton::Left) || egui_ctx.ctx_mut().is_pointer_over_area() {
         return;
     }
 
@@ -182,14 +207,11 @@ fn set_clicked_clickables(
                 });
 
         if let Some((mut clickable, ..)) = clicked_clickables_query_element {
-            // I want to figure out what to do now.
-            // Can add property to Clickable component "just_clicked".
-            // Systems that care about certain things being clicked can query for that component
-            // then see if Clickable.just_clicked is true & do their logic.
-            // This system set_clicked_images at the start will have to iterate through all
-            // clickables and set just_clicked to false.
             clickable.just_clicked = true;
-            println!("clicked on image!");
+        } else {
+            if !egui_ctx.ctx_mut().is_pointer_over_area() {
+                clicked_nothing_event_writer.send(ClickedNothingEvent {});
+            }
         }
     }
 }
@@ -210,24 +232,20 @@ fn despawn_when_not_clicked(
 
 fn create_dropdown_when_inspectable_clicked(
     mut commands: Commands,
-    query: Query<(&Clickable, &Inspectable)>,
+    clickables_query: Query<(&Clickable, &Inspectable)>,
+    existing_dropdowns_query: Query<(Entity, &Dropdown)>,
     mouse_position: Res<MousePosition>,
 ) {
-    // Add future support for displaying multiple clicked inspectable things in the dropdown at once.
-    for (clickable, inspectable) in query.iter() {
+    for (clickable, inspectable) in clickables_query.iter() {
         if clickable.just_clicked {
             if let Some(mouse_egui_screen_position) = mouse_position.egui_screen_position {
-                commands
-                    .spawn()
-                    .insert(Dropdown {
-                        screen_position: mouse_egui_screen_position,
-                        inspectable: inspectable.clone(),
-                    })
-                    .insert(WhenNotClickedDespawn {})
-                    // I think in the future the dropdown itself wont have a clickable component,
-                    // but instead one of its children will. So we'll have to somehow delete the
-                    // parent dropdown component from one of its children.
-                    .insert(Clickable::new());
+                commands.spawn().insert(Dropdown {
+                    screen_position: mouse_egui_screen_position,
+                    inspectable: inspectable.clone(),
+                });
+                for (entity, ..) in existing_dropdowns_query.iter() {
+                    commands.entity(entity).despawn();
+                }
             }
         }
     }
